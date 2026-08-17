@@ -24,8 +24,6 @@
 
 [![Build and push Docker images](https://github.com/shanmiteko/LotteryAutoScript/actions/workflows/docker.yml/badge.svg)](https://github.com/shanmiteko/LotteryAutoScript/actions/workflows/docker.yml)
 
-[![Publishing to NPM](https://github.com/shanmiteko/LotteryAutoScript/actions/workflows/npmp.yml/badge.svg)](https://github.com/shanmiteko/LotteryAutoScript/actions/workflows/npmp.yml)
-
 [![Mirror and run GitLab CI](https://github.com/shanmiteko/LotteryAutoScript/actions/workflows/mirror.yml/badge.svg)](https://github.com/shanmiteko/LotteryAutoScript/actions/workflows/mirror.yml)
 
 已实现功能:
@@ -197,6 +195,8 @@ buvid3亦可不填 使用随机生成值
 - 通过私信判断
 
 关键词有限 可能会有**漏掉**的或**误报**
+
+可在设置开启AI判断
 
 ### 中奖推送
 

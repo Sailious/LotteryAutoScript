@@ -1,5 +1,37 @@
 <!-- markdownlint-disable MD036 MD024-->
 # CHANGELOG
+## 主要变化(2.11.2)
+* 51ec0a1 feat: 获取视频动态的简介以参与转发抽奖
+
+_如果之前版本小于上一版本,请查看[CHANGELOG](https://github.com/shanmiteko/LotteryAutoScript/blob/main/CHANGELOG.md)变更说明_
+
+## 主要变化(2.11.1)
+* 2294ad9 fix: ai返回增加类型检查
+* fe0258a feat: ai过滤过期抽奖
+* a14af8e fix: ai模式带话题和错误at好友
+* e0c18b0 chore: 更新action
+
+_如果之前版本小于上一版本,请查看[CHANGELOG](https://github.com/shanmiteko/LotteryAutoScript/blob/main/CHANGELOG.md)变更说明_
+
+## 主要变化(2.11.0)
+* 1c36941 fix: origin is null
+* 2f4734c chore: 不再推送至npm
+* 8e63e07 fix: @信息未获取导致转发错误标蓝
+* d879c63 fix: 转发类型动态获取不到rid无法评论 (#466)
+* a1a0474 fix: 监控uid模式获取不到动态内容
+* 3af17e5 feat: 可在设置接入AI判断动态是否是抽奖动态
+* d3cc24c feat: debug日志输出网络请求
+
+_如果之前版本小于上一版本,请查看[CHANGELOG](https://github.com/shanmiteko/LotteryAutoScript/blob/main/CHANGELOG.md)变更说明_
+
+## 主要变化(2.10.3)
+* a2c461b fix: clear异常循环 (#484)
+* abe660b fix: prevent is_repost_then_chat from overriding AI-generated comments (#485)
+* 7aa82fe feat: Integrate Feishu for notification (#482)
+* 08a6359 fix: `is_charge_lottery`默认false
+
+_如果之前版本小于上一版本,请查看[CHANGELOG](https://github.com/shanmiteko/LotteryAutoScript/blob/main/CHANGELOG.md)变更说明_
+
 ## 主要变化(2.10.2)
 * d0a0dd9 feat: 新增QMSG_SOCKET推送参数支持私有云 (#473)
 * d40daa2 docs: 注解默认设置
