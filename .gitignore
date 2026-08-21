@@ -11,3 +11,5 @@ dist/
 package-lock.json
 env.js
 my_config.js
+.workbuddy
+改进方案
