@@ -7,6 +7,8 @@
     "login": "node main.js login",
     "start": "node main.js start",
     "test": "node test/index.js",
+    "test:opus": "node test/opus_cycle_guard.js",
+    "test:multi": "node test/multi_account_child_process.js && node test/multi_account_sequence.js",
     "clear": "node main.js clear",
     "check": "node main.js check",
     "update": "node main.js update",
