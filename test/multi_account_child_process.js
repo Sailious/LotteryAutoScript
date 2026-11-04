@@ -73,6 +73,20 @@ if (/帐号4 main/.test(out)) {
     failed.push('出现了第4个账号，账号列表长度判断有误');
 }
 
+/** 6. 子进程绝不能再次进入多账号分支（否则就是「疯狂重启」） */
+if (out.includes('[stub] 严重：子进程又尝试派生账号进程')) {
+    failed.push('子进程重新进入了多账号分支，发生无限派生');
+}
+const mode_lines = out.split('\n').filter(it => it.includes('执行模式: 独立子进程')).length;
+if (mode_lines !== 1) {
+    failed.push(`「独立子进程」模式日志出现了 ${mode_lines} 次，期望 1 次（只有父进程该打印）`);
+}
+/** 环境变量初始化只应有 4 次：父进程 1 次 + 3 个子进程各 1 次 */
+const init_lines = out.split('\n').filter(it => it.includes('环境变量初始化')).length;
+if (init_lines !== 4) {
+    failed.push(`「环境变量初始化」出现 ${init_lines} 次，期望 4 次（1父+3子），可能存在递归派生`);
+}
+
 /** 输出关键行，便于人工核对 */
 const key_lines = out.split('\n').filter(it => /多账号|当前为第|stub|执行模式/.test(it));
 console.log('关键日志:');

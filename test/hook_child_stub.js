@@ -33,16 +33,34 @@ function stub(relative_path, exports) {
 if (process.env.LOTTERY_TEST_STUB === '1') {
     /**
      * 模拟 env.js 里 account_parm 的覆盖行为：
-     * 真实 env.init() 会用 account_parm 里的 COOKIE/NUMBER 覆盖 process.env，
-     * 子进程如果不靠 LOTTERY_ACCOUNT_SEQ 再覆盖一次，就会全部跑成账号1。
+     * 真实 env.init() 会用 account_parm 里的值覆盖 process.env —— 包括 COOKIE、NUMBER，
+     * 以及最关键的 ENABLE_MULTIPLE_ACCOUNT（account_parm 里通常是 true）。
+     * 子进程如果不做二次覆盖：轻则全部跑成账号1，重则再次进入多账号分支、无限派生孙进程。
      */
     stub('lib/data/env.js', {
         init: () => {
             process.env.COOKIE = 'PARM_COOKIE';
             process.env.NUMBER = '1';
+            process.env.ENABLE_MULTIPLE_ACCOUNT = 'true';
+            process.env.MULTIPLE_ACCOUNT_PARM = '';
         },
         get_multiple_account: () => []
     });
+
+    /**
+     * 安全阀：子进程不允许再派生账号进程。
+     * 一旦发生，说明「子进程禁止进多账号分支」的约束失效了，立即中止并留下明确标记，
+     * 避免测试机上出现指数级自我复制。
+     */
+    const cp = require('child_process');
+    const real_spawn = cp.spawn;
+    cp.spawn = (...args) => {
+        if (process.env.LOTTERY_ACCOUNT_SEQ) {
+            console.log('[stub] 严重：子进程又尝试派生账号进程（多账号模式未被关闭），已阻止');
+            process.exit(99);
+        }
+        return real_spawn(...args);
+    };
 
     /** 避免读写项目里的 dyids/ 目录 */
     stub('lib/data/global_var.js', {

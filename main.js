@@ -26,6 +26,8 @@ const metainfo = [
 ];
 /**多账号存储 */
 let multiple_account = [];
+/**MULTIPLE_ACCOUNT_PARM的原始快照(env.init()会用account_parm覆盖它，必须先留一份) */
+let multi_parm_raw = '';
 /**循环等待时间 */
 let loop_wait = 0;
 /**账号状态标记 1正常 -1失效 */
@@ -52,7 +54,7 @@ function get_multiple_account_list() {
         return multiple_account;
     }
     try {
-        const list = JSON.parse(process.env.MULTIPLE_ACCOUNT_PARM || '[]');
+        const list = JSON.parse(multi_parm_raw || process.env.MULTIPLE_ACCOUNT_PARM || '[]');
         return Array.isArray(list) ? list : [];
     } catch (_) {
         return [];
@@ -74,12 +76,20 @@ function buildProxyUrl(acco) {
  * 子进程专用：把父进程指定的账号写入环境变量
  *
  * 子进程启动时会重新加载env.js，其中account_parm里的单账号配置会覆盖父进程传来的值，
- * 因此必须在 env.init() 之后再覆盖一次，否则所有子进程都会跑成 account_parm 里那个账号。
+ * 因此必须在 env.init() 之后再覆盖一次。
+ *
+ * 注意：这里除了COOKIE/NUMBER，还必须强制关掉 ENABLE_MULTIPLE_ACCOUNT ——
+ * account_parm 里通常写着 true，若不关掉，子进程会再次进入多账号分支、
+ * 继续派生孙进程，形成指数级「疯狂重启」。
  */
 function apply_child_account_env() {
     if (!is_child_process()) {
         return;
     }
+
+    /**第一优先级：先确保子进程永远不进多账号分支 */
+    process.env.ENABLE_MULTIPLE_ACCOUNT = 'false';
+
     const acco = get_multiple_account_list()[Number(process.env[CHILD_SEQ_ENV]) - 1];
     if (!acco) {
         log.error('子进程', `未找到序号为${process.env[CHILD_SEQ_ENV]}的账号配置，将按account_parm执行`);
@@ -143,6 +153,8 @@ async function runAccountsAsChildProcess(muti_acco, mode) {
             ...process.env,
             /**子进程自身不能再进多账号分支，否则会无限派生 */
             ENABLE_MULTIPLE_ACCOUNT: 'false',
+            /**把完整账号列表显式传下去：子进程要靠它取出自己那一份配置 */
+            MULTIPLE_ACCOUNT_PARM: multi_parm_raw || process.env.MULTIPLE_ACCOUNT_PARM || '',
             [CHILD_SEQ_ENV]: String(seq),
             /**子进程不必重复检查脚本更新 */
             LOTTERY_SKIP_UPDATE: '1'
@@ -190,18 +202,22 @@ async function runAccountsAsChildProcess(muti_acco, mode) {
  */
 async function main() {
     const { COOKIE, NUMBER, CLEAR, ENABLE_MULTIPLE_ACCOUNT, MULTIPLE_ACCOUNT_PARM } = process.env;
-    /**环境变量一律是字符串，'false' 也是真值，必须显式判断，否则会把多账号模式误开启/误关闭 */
-    const multi_enabled = ENABLE_MULTIPLE_ACCOUNT === true
-        || String(ENABLE_MULTIPLE_ACCOUNT).toLowerCase() === 'true';
+    /**
+     * 环境变量一律是字符串，'false' 也是真值，必须显式判断，否则会把多账号模式误开启/误关闭
+     * 另外：子进程永远不能进多账号分支，否则会继续派生孙进程，形成「疯狂重启」
+     */
+    const multi_enabled = !is_child_process()
+        && (ENABLE_MULTIPLE_ACCOUNT === true || String(ENABLE_MULTIPLE_ACCOUNT).toLowerCase() === 'true');
     if (multi_enabled) {
         let muti_acco = [];
         if (multiple_account.length) {
             muti_acco = multiple_account;
         } else {
+            const raw_parm = multi_parm_raw || MULTIPLE_ACCOUNT_PARM;
             try {
-                muti_acco = JSON.parse(MULTIPLE_ACCOUNT_PARM);
+                muti_acco = JSON.parse(raw_parm);
             } catch (_) {
-                return `多账号参数MULTIPLE_ACCOUNT_PARM不是合法的JSON: ${MULTIPLE_ACCOUNT_PARM}`;
+                return `多账号参数MULTIPLE_ACCOUNT_PARM不是合法的JSON: ${raw_parm}`;
             }
         }
 
@@ -304,8 +320,11 @@ async function main() {
             return first_err;
         }
     } else if (COOKIE) {
-        /**配置自检：明明写了多个账号却没开多账号开关，是从日志里最容易误判的一种情况 */
-        if (multiple_account.length > 1) {
+        /**
+         * 配置自检：明明写了多个账号却没开多账号开关，是从日志里最容易误判的一种情况
+         * 子进程里多账号是被主动关掉的，属正常状态，不能告警
+         */
+        if (!is_child_process() && multiple_account.length > 1) {
             log.warn('多账号', `env.js中已配置${multiple_account.length}个账号，但ENABLE_MULTIPLE_ACCOUNT未开启，本次只执行account_parm中的帐号${NUMBER}`);
         }
 
@@ -392,11 +411,16 @@ function initEnv() {
             multiple_account = multiple_account_parm;
         }
 
+        /**env.init()会用account_parm覆盖MULTIPLE_ACCOUNT_PARM，先留一份原始值给子进程使用 */
+        multi_parm_raw = process.env.MULTIPLE_ACCOUNT_PARM || multi_parm_raw;
+
         env.init();
         log.init();
         apply_child_account_env();
         log.info('环境变量初始化', '成功加载env.js文件');
     } else if (hasEnv('COOKIE') || hasEnv('MULTIPLE_ACCOUNT_PARM')) {
+        /**环境变量方式的配置不会走env.init()，这里直接留快照 */
+        multi_parm_raw = process.env.MULTIPLE_ACCOUNT_PARM || multi_parm_raw;
         log.init();
         apply_child_account_env();
         log.info('环境变量初始化', '成功从环境变量中读取COOKIE设置');
@@ -427,7 +451,10 @@ function initConfig() {
 }
 
 (async function () {
-    log.rainbow(metainfo);
+    /**子进程不再重复打印启动图，避免多账号时日志被 banner 反复刷屏 */
+    if (!is_child_process()) {
+        log.rainbow(metainfo);
+    }
 
     if (initEnv() || initConfig()) return;
 
