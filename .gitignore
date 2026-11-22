@@ -1,6 +1,9 @@
 node_modules/
 .vscode/
-test/
+test/*
+!test/offline/
+test/offline/*
+!test/offline/ai-comment.js
 dyids/
 lottery_info/
 lottery_dyids/
@@ -11,5 +14,8 @@ dist/
 package-lock.json
 env.js
 my_config.js
+env.production.js
+my_config.production.js
 .workbuddy
 改进方案
+samples/

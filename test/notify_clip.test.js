@@ -30,7 +30,11 @@ assert(log._clip('正常HTML页面\n' + htmlPage).includes('HTML页面响应体�
 const saved_cache = log._cache;
 log._cache = [];
 log.error('json解析', failedResponse);
-utils.strToJson(pageError);
+const errorCount = log._cache.length;
+for (const text of [pageError, '[请求失败]: getaddrinfo EAI_AGAIN', '[响应错误]HTTP状态码: 500']) {
+    assert.deepStrictEqual(utils.strToJson(text), {});
+}
+assert.strictEqual(log._cache.length, errorCount, 'HTTP错误文本由业务层记录，解析层不重复输出');
 const cached = log._cache.join('\n');
 assert(cached.includes('遇到页面错误'), '通知数据源应含页面错误提示');
 assert(cached.includes('页面错误'), '应记录页面错误');

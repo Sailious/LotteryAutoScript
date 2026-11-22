@@ -373,7 +373,9 @@ module.exports = Object.freeze({
              * /chat/completions
              */
             url: '',
-            body: {},
+            /* 评论总预算最多30秒；默认最多512token，group/free专用4096；JSON协议由程序附加 */
+            timeout_ms: 30000,
+            body: { max_tokens: 512, temperature: 0.4 },
             prompt: ''
         },
 
@@ -533,9 +535,11 @@ module.exports = Object.freeze({
             url: 'https://api.deepseek.com/chat/completions',
             body: {
                 'model': 'Qwen/Qwen3-32B',
-                'enable_thinking': true,
+                'enable_thinking': false,
+                'max_tokens': 512,
+                'temperature': 0.4,
             },
-            prompt: '作为B站动态抽奖参与者，为给定动态生成一条可直接发布的评论。第一步：判断动态是否对评论内容提出了明确要求（例如预测胜负并写清战队名称和理由、回答指定问题、写出观点或文案、带指定话题等）。第二步：若有明确要求，必须正面具体地满足它，写清动态所问的信息（预测类要写明具体战队名称和一句理由），内容与该动态强相关、像真人发言，此时不要套用「我想要xxx」；若无明确要求，只输出「我想要xxx」，xxx 为指定奖品的核心简写名称（取主体或型号，省略容量、颜色、版本等），只提一个奖品。通用规则：只输出一条评论正文；不@任何用户；不列举多个奖品；不输出解释、前缀、编号、引号、Markdown 或代码块；不复制动态原文；控制在 60 字以内；除评论本身外不输出任何内容。示例：动态「转发并评论：哪支队伍能夺冠？写清战队名称和理由，抽西昊C300Pro」输出「看好BLG，中野联动和团战处理更稳，应该能夺冠！」；动态「关注转发抽一把机械键盘」输出「我想要机械键盘」。'
+            prompt: '结合动态的明确要求作答；预测类写清战队名称和理由，无指定要求时可以用「我想要xxx」表达奖品意愿。不@任何用户，不编造个人经历，不冒充活动发布者。输出结构遵守程序附加的JSON协议。'
         },
 
         save_lottery_info_to_file: true,
